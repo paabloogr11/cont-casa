@@ -20,23 +20,22 @@
   #header{position:sticky;top:0;z-index:100;background:rgba(11,13,20,0.88);backdrop-filter:blur(20px);padding:14px 16px 0;border-bottom:1px solid var(--bdr);}
   .logo-row{display:flex;align-items:center;gap:10;margin-bottom:12px;}
   .logo-text{font-size:1.2rem;font-weight:900;background:linear-gradient(90deg,#4ade80,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-left:8px;}
-  .nav-row{display:flex;gap:2px;overflow-x:auto;padding-bottom:0;}
+  .nav-row{display:flex;gap:2px;overflow-x:auto;}
   .nav-btn{flex-shrink:0;padding:9px 11px;border-radius:8px 8px 0 0;border:none;cursor:pointer;font-size:0.7rem;font-weight:700;color:var(--mt);background:transparent;border-bottom:2px solid transparent;}
   .nav-btn.active{background:rgba(255,255,255,0.08);color:var(--tx);border-bottom:2px solid var(--gr);}
 
   #body{padding:14px;}
   .card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:16px;margin-bottom:12px;}
   .card-title{font-size:0.88rem;font-weight:800;margin-bottom:12px;color:var(--tx);}
-  label.lbl{display:block;font-size:0.66rem;color:var(--mt);font-weight:700;text-transform:uppercase;margin-bottom:5px;}
-  .inp, .sel{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:10px;padding:10px;color:var(--tx);margin-bottom:8px;font-family:var(--font);}
+  .inp, .sel{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:10px;padding:10px;color:var(--tx);margin-bottom:8px;font-family:var(--font);outline:none;}
   
   .btn-green{width:100%;padding:13px;border-radius:11px;border:none;background:linear-gradient(135deg,#15803d,#4ade80);color:#052e16;font-weight:800;cursor:pointer;}
   .btn-blue{width:100%;padding:13px;border-radius:11px;border:none;background:linear-gradient(135deg,#1e40af,#60a5fa);color:#fff;font-weight:800;cursor:pointer;}
   
   .stat-row{display:flex;gap:10px;margin-bottom:12px;}
   .stat-card{flex:1;border-radius:13px;padding:12px 14px;border:1px solid var(--bdr);}
-  .stat-num{font-size:1.4rem;font-weight:900;margin-bottom:2px;}
-  .stat-lbl{font-size:0.63rem;color:rgba(255,255,255,0.5);font-weight:600;text-transform:uppercase;}
+  .stat-num{font-size:1.3rem;font-weight:900;margin-bottom:2px;}
+  .stat-lbl{font-size:0.6rem;color:rgba(255,255,255,0.5);font-weight:600;text-transform:uppercase;}
 
   .item-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--bdr);}
   .view{display:none;}
@@ -70,20 +69,20 @@
         <div class="stat-lbl">Gastos</div>
       </div>
     </div>
-    <div class="card" id="ini-ahorro-card">
-      <label class="lbl">Balance Total</label>
+    <div class="card">
+      <div style="font-size:0.65rem; color:var(--mt); text-transform:uppercase; font-weight:700;">Balance Total</div>
       <div id="ini-ahorro-num" style="font-size:2rem; font-weight:900;">0,00 €</div>
     </div>
     <div class="card">
       <div class="card-title">Últimos movimientos</div>
-      <div id="ini-list">Cargando datos...</div>
+      <div id="ini-list">Cargando...</div>
     </div>
   </div>
 
   <div id="view-gastos" class="view">
     <div class="card">
       <div class="card-title">➕ Nuevo Gasto</div>
-      <input class="inp" id="g-desc" placeholder="¿En qué gastaste?"/>
+      <input class="inp" id="g-desc" placeholder="Descripción (ej: Supermercado)"/>
       <input class="inp" id="g-imp" type="number" placeholder="Importe €"/>
       <select class="sel" id="g-cat"></select>
       <input class="inp" id="g-fecha" type="date"/>
@@ -95,7 +94,7 @@
   <div id="view-ingresos" class="view">
     <div class="card">
       <div class="card-title">➕ Nuevo Ingreso</div>
-      <input class="inp" id="i-desc" placeholder="Origen del dinero"/>
+      <input class="inp" id="i-desc" placeholder="Origen (ej: Nómina)"/>
       <input class="inp" id="i-imp" type="number" placeholder="Importe €"/>
       <select class="sel" id="i-cat"></select>
       <input class="inp" id="i-fecha" type="date"/>
@@ -106,26 +105,30 @@
 </div>
 
 <script>
-// --- CONEXIÓN SUPABASE ---
+// --- CONEXIÓN SUPABASE CORREGIDA ---
 const supabaseUrl = 'https://lbijwoqjuvsbqyjojila.supabase.co';
 const supabaseKey = 'sb_publishable_Pp83X9RvHF7iIE6VHywoiQ_LAaoYPXh';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 let gastos = [], ingresos = [];
 
+// Función para traer datos de la nube
 async function fetchData() {
-  const { data: gData } = await supabaseClient.from('gastos').select('*').order('date', { ascending: false });
-  const { data: iData } = await supabaseClient.from('ingresos').select('*').order('date', { ascending: false });
+  const { data: gData, error: ge } = await supabaseClient.from('gastos').select('*').order('date', { ascending: false });
+  const { data: iData, error: ie } = await supabaseClient.from('ingresos').select('*').order('date', { ascending: false });
+  
+  if (ge || ie) console.error("Error cargando datos:", ge || ie);
+  
   gastos = gData || [];
   ingresos = iData || [];
   renderAll();
 }
 
-const fmt = n => n.toLocaleString("es-ES",{minimumFractionDigits:2}) + " €";
+const fmt = n => n.toLocaleString("es-ES",{minimumFractionDigits:2, maximumFractionDigits:2}) + " €";
 
 function renderAll() {
-  const totG = gastos.reduce((s,x) => s + x.amount, 0);
-  const totI = ingresos.reduce((s,x) => s + x.amount, 0);
+  const totG = gastos.reduce((s,x) => s + (parseFloat(x.amount) || 0), 0);
+  const totI = ingresos.reduce((s,x) => s + (parseFloat(x.amount) || 0), 0);
   const bal = totI - totG;
 
   document.getElementById('ini-tot-i').textContent = fmt(totI);
@@ -136,33 +139,38 @@ function renderAll() {
   const combined = [...gastos.map(x=>({...x,t:'g'})), ...ingresos.map(x=>({...x,t:'i'}))]
                   .sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,10);
   
-  document.getElementById('ini-list').innerHTML = combined.map(it => `
-    <div class="item-row">
-      <div style="flex:1">
-        <div style="font-weight:600; font-size:0.85rem">${it.description}</div>
-        <div style="font-size:0.65rem; color:var(--mt)">${it.date}</div>
+  const listEl = document.getElementById('ini-list');
+  if(combined.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--mt); font-size:0.8rem; text-align:center; padding:10px;">No hay movimientos</div>';
+  } else {
+    listEl.innerHTML = combined.map(it => `
+      <div class="item-row">
+        <div style="flex:1">
+          <div style="font-weight:600; font-size:0.85rem">${it.description}</div>
+          <div style="font-size:0.65rem; color:var(--mt)">${it.date}</div>
+        </div>
+        <div style="font-weight:800; color:${it.t==='g'?'var(--rd)':'var(--gr)'}">
+          ${it.t==='g'?'-':'+'} ${fmt(it.amount)}
+        </div>
       </div>
-      <div style="font-weight:800; color:${it.t==='g'?'var(--rd)':'var(--gr)'}">
-        ${it.t==='g'?'-':'+'} ${fmt(it.amount)}
-      </div>
-    </div>
-  `).join('');
+    `).join('');
+  }
 
   if(currentView === 'gastos') {
-    document.getElementById('g-list').innerHTML = gastos.map(g => `
+    document.getElementById('g-list').innerHTML = gastos.length ? gastos.map(g => `
       <div class="item-row">
         <div style="flex:1"><b>${g.description}</b><br><small>${g.date}</small></div>
         <div style="color:var(--rd)">-${fmt(g.amount)}</div>
       </div>
-    `).join('');
+    `).join('') : '<div style="color:var(--mt); text-align:center;">Sin gastos</div>';
   }
   if(currentView === 'ingresos') {
-    document.getElementById('i-list').innerHTML = ingresos.map(i => `
+    document.getElementById('i-list').innerHTML = ingresos.length ? ingresos.map(i => `
       <div class="item-row">
         <div style="flex:1"><b>${i.description}</b><br><small>${i.date}</small></div>
         <div style="color:var(--gr)">+${fmt(i.amount)}</div>
       </div>
-    `).join('');
+    `).join('') : '<div style="color:var(--mt); text-align:center;">Sin ingresos</div>';
   }
 }
 
@@ -171,10 +179,17 @@ async function saveGasto() {
   const amount = parseFloat(document.getElementById('g-imp').value);
   const category = document.getElementById('g-cat').value;
   const date = document.getElementById('g-fecha').value;
-  if(!description || !amount) return;
-  await supabaseClient.from('gastos').insert([{ id: Date.now(), description, amount, category, date }]);
-  document.getElementById('g-desc').value = ''; document.getElementById('g-imp').value = '';
-  fetchData();
+  
+  if(!description || isNaN(amount)) return alert("Rellena descripción e importe");
+
+  const { error } = await supabaseClient.from('gastos').insert([{ id: Date.now(), description, amount, category, date }]);
+  if(error) {
+     alert("Error al guardar: " + error.message);
+  } else {
+     document.getElementById('g-desc').value = ''; 
+     document.getElementById('g-imp').value = '';
+     fetchData();
+  }
 }
 
 async function saveIngreso() {
@@ -182,10 +197,17 @@ async function saveIngreso() {
   const amount = parseFloat(document.getElementById('i-imp').value);
   const category = document.getElementById('i-cat').value;
   const date = document.getElementById('i-fecha').value;
-  if(!description || !amount) return;
-  await supabaseClient.from('ingresos').insert([{ id: Date.now(), description, amount, category, date }]);
-  document.getElementById('i-desc').value = ''; document.getElementById('i-imp').value = '';
-  fetchData();
+
+  if(!description || isNaN(amount)) return alert("Rellena descripción e importe");
+
+  const { error } = await supabaseClient.from('ingresos').insert([{ id: Date.now(), description, amount, category, date }]);
+  if(error) {
+     alert("Error al guardar: " + error.message);
+  } else {
+     document.getElementById('i-desc').value = ''; 
+     document.getElementById('i-imp').value = '';
+     fetchData();
+  }
 }
 
 let currentView = 'inicio';
@@ -195,9 +217,10 @@ function setView(v) {
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.querySelector(`[data-view="${v}"]`).classList.add('active');
-  renderAll();
+  fetchData();
 }
 
+// Configuración inicial
 document.getElementById('hdr-date').textContent = new Date().toLocaleDateString();
 document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0];
 document.getElementById('i-fecha').value = new Date().toISOString().split('T')[0];
@@ -206,8 +229,10 @@ const catsI = ["Nómina", "Venta", "Regalo", "Otros"];
 document.getElementById('g-cat').innerHTML = catsG.map(c => `<option value="${c}">${c}</option>`).join('');
 document.getElementById('i-cat').innerHTML = catsI.map(c => `<option value="${c}">${c}</option>`).join('');
 
+// Carga inicial de datos
 fetchData();
-setInterval(fetchData, 15000); // Sincroniza cada 15 seg
+// Sincronización automática cada 15 segundos
+setInterval(fetchData, 15000);
 </script>
 </body>
 </html>
