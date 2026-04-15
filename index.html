@@ -75,7 +75,7 @@
     </div>
     <div class="card">
       <div class="card-title">Últimos movimientos</div>
-      <div id="ini-list">Cargando...</div>
+      <div id="ini-list">Cargando datos de la nube...</div>
     </div>
   </div>
 
@@ -105,19 +105,20 @@
 </div>
 
 <script>
-// --- CONEXIÓN SUPABASE CORREGIDA ---
+// --- CONEXIÓN SUPABASE (VERIFICADA) ---
 const supabaseUrl = 'https://lbijwoqjuvsbqyjojila.supabase.co';
 const supabaseKey = 'sb_publishable_Pp83X9RvHF7iIE6VHywoiQ_LAaoYPXh';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 let gastos = [], ingresos = [];
 
-// Función para traer datos de la nube
+// Función para traer datos
 async function fetchData() {
   const { data: gData, error: ge } = await supabaseClient.from('gastos').select('*').order('date', { ascending: false });
   const { data: iData, error: ie } = await supabaseClient.from('ingresos').select('*').order('date', { ascending: false });
   
-  if (ge || ie) console.error("Error cargando datos:", ge || ie);
+  if (ge) console.error("Error gastos:", ge);
+  if (ie) console.error("Error ingresos:", ie);
   
   gastos = gData || [];
   ingresos = iData || [];
@@ -137,11 +138,11 @@ function renderAll() {
   document.getElementById('ini-ahorro-num').style.color = bal >= 0 ? 'var(--gr)' : 'var(--rd)';
 
   const combined = [...gastos.map(x=>({...x,t:'g'})), ...ingresos.map(x=>({...x,t:'i'}))]
-                  .sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,10);
+                  .sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,15);
   
   const listEl = document.getElementById('ini-list');
   if(combined.length === 0) {
-    listEl.innerHTML = '<div style="color:var(--mt); font-size:0.8rem; text-align:center; padding:10px;">No hay movimientos</div>';
+    listEl.innerHTML = '<div style="color:var(--mt); font-size:0.8rem; text-align:center; padding:10px;">Aún no hay movimientos en la nube</div>';
   } else {
     listEl.innerHTML = combined.map(it => `
       <div class="item-row">
@@ -162,7 +163,7 @@ function renderAll() {
         <div style="flex:1"><b>${g.description}</b><br><small>${g.date}</small></div>
         <div style="color:var(--rd)">-${fmt(g.amount)}</div>
       </div>
-    `).join('') : '<div style="color:var(--mt); text-align:center;">Sin gastos</div>';
+    `).join('') : '<div style="color:var(--mt); text-align:center;">Sin gastos guardados</div>';
   }
   if(currentView === 'ingresos') {
     document.getElementById('i-list').innerHTML = ingresos.length ? ingresos.map(i => `
@@ -170,7 +171,7 @@ function renderAll() {
         <div style="flex:1"><b>${i.description}</b><br><small>${i.date}</small></div>
         <div style="color:var(--gr)">+${fmt(i.amount)}</div>
       </div>
-    `).join('') : '<div style="color:var(--mt); text-align:center;">Sin ingresos</div>';
+    `).join('') : '<div style="color:var(--mt); text-align:center;">Sin ingresos guardados</div>';
   }
 }
 
@@ -180,11 +181,11 @@ async function saveGasto() {
   const category = document.getElementById('g-cat').value;
   const date = document.getElementById('g-fecha').value;
   
-  if(!description || isNaN(amount)) return alert("Rellena descripción e importe");
+  if(!description || isNaN(amount)) return alert("⚠️ Rellena la descripción y el importe");
 
   const { error } = await supabaseClient.from('gastos').insert([{ id: Date.now(), description, amount, category, date }]);
   if(error) {
-     alert("Error al guardar: " + error.message);
+     alert("❌ Error al guardar en la nube: " + error.message);
   } else {
      document.getElementById('g-desc').value = ''; 
      document.getElementById('g-imp').value = '';
@@ -198,11 +199,11 @@ async function saveIngreso() {
   const category = document.getElementById('i-cat').value;
   const date = document.getElementById('i-fecha').value;
 
-  if(!description || isNaN(amount)) return alert("Rellena descripción e importe");
+  if(!description || isNaN(amount)) return alert("⚠️ Rellena la descripción y el importe");
 
   const { error } = await supabaseClient.from('ingresos').insert([{ id: Date.now(), description, amount, category, date }]);
   if(error) {
-     alert("Error al guardar: " + error.message);
+     alert("❌ Error al guardar en la nube: " + error.message);
   } else {
      document.getElementById('i-desc').value = ''; 
      document.getElementById('i-imp').value = '';
@@ -217,7 +218,7 @@ function setView(v) {
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.querySelector(`[data-view="${v}"]`).classList.add('active');
-  fetchData();
+  renderAll();
 }
 
 // Configuración inicial
@@ -229,10 +230,10 @@ const catsI = ["Nómina", "Venta", "Regalo", "Otros"];
 document.getElementById('g-cat').innerHTML = catsG.map(c => `<option value="${c}">${c}</option>`).join('');
 document.getElementById('i-cat').innerHTML = catsI.map(c => `<option value="${c}">${c}</option>`).join('');
 
-// Carga inicial de datos
+// Carga inicial
 fetchData();
-// Sincronización automática cada 15 segundos
-setInterval(fetchData, 15000);
+// Auto-sincronización
+setInterval(fetchData, 10000);
 </script>
 </body>
 </html>
